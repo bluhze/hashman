@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Generate hashtags by combining terms from multiple inputs. Create, save, and manage your hashtag collections.">
+    <title>Hashtag Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 50px;
+            background-color: #ffffff;
+            border-right: 1px solid #e8e8e8;
+            padding: 10px 0;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: width 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .sidebar.expanded {
+            width: 200px;
+        }
+
+        .sidebar-toggle {
+            width: 30px;
+            height: 30px;
+            background-color: #048a81;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        .sidebar-toggle:hover {
+            background-color: #06d6a0;
+            transform: scale(1.1);
+        }
+
+        .sidebar-toggle:focus {
+            outline: 3px solid #54c6eb;
+            outline-offset: 2px;
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .sidebar.expanded .sidebar-nav {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .sidebar-link {
+            width: 50px;
+            height: 50px;
+            background-color: #f9f9f9;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #000000;
+            text-decoration: none;
+            transition: background-color 0.2s, transform 0.2s;
+            margin: 0 auto;
+        }
+
+        .sidebar-link:hover {
+            background-color: #e8e8e8;
+            transform: scale(1.1);
+        }
+
+        .sidebar-link.active {
+            background-color: #048a81;
+            color: #ffffff;
+        }
+
+        .sidebar-link:focus {
+            outline: 3px solid #54c6eb;
+            outline-offset: 2px;
+        }
+
+        .main-content {
+            margin-left: 50px;
+            flex: 1;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.sidebar-open {
+            margin-left: 200px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 40px;
+        }
+
+        h1 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            color: #000000;
+            margin-bottom: 40px;
+            background-color: #e8e8e8;
+            padding: 20px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .input-label {
+            background-color: #e8e8e8;
+            padding: 12px 15px;
+            font-size: 0.9rem;
+            color: #000000;
+            white-space: nowrap;
+            min-width: 100px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d0d0d0;
+            background-color: #ffffff;
+            font-size: 1rem;
+            color: #000000;
+            min-height: 50px;
+        }
+
+        .counter-container {
+            background-color: #d0d0d0;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+
+        .counter-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #000000;
+            text-decoration: underline;
+            margin-bottom: 8px;
+        }
+
+        .word-count-container {
+            background-color: #d0d0d0;
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+        }
+
+        .word-count-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #000000;
+            text-decoration: underline;
+            margin-bottom: 8px;
+        }
+
+        .word-count-label {
+            font-size: 0.75rem;
+            color: #000000;
+            text-align: center;
+        }
+
+        .counter-buttons {
+            display: flex;
+            gap: 5px;
+        }
+
+        .counter-btn {
+            background-color: #ffffff;
+            border: 1px solid #000000;
+            width: 30px;
+            height: 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000;
+        }
+
+        .counter-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        .counter-btn.error {
+            background-color: #ff0000;
+            color: #ffffff;
+            animation: shake 0.3s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .combinations-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #ffffff;
+            border: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .combinations-label {
+            font-size: 0.9rem;
+            color: #000000;
+            white-space: nowrap;
+        }
+
+        .combinations-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #d0d0d0;
+            background-color: #ffffff;
+            font-size: 1rem;
+            color: #000000;
+            text-align: center;
+        }
+
+        .generate-buttons-container {
+            display: flex;
+            gap: 10px;
+            margin: 30px 0;
+        }
+
+        .generate-buttons-container.single-column {
+            flex-direction: column;
+        }
+
+        .generate-buttons-container.two-column {
+            flex-direction: row;
+        }
+
+        .generate-button {
+            flex: 1;
+            background-color: #e8e8e8;
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            color: #000000;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .generate-button:hover {
+            background-color: #d8d8d8;
+        }
+
+        .save-button {
+            flex: 1;
+            background-color: #e8e8e8;
+            border: none;
+            padding: 15px;
+            font-size: 1rem;
+            color: #000000;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .save-button:hover {
+            background-color: #d8d8d8;
+        }
+
+        .save-button.green {
+            background-color: #4CAF50;
+            color: #ffffff;
+        }
+
+        .save-button.green:hover {
+            background-color: #45a049;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            margin: 15% auto;
+            padding: 30px;
+            border: 1px solid #d0d0d0;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #000000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d0d0d0;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .modal-btn-primary {
+            background-color: #e8e8e8;
+            color: #000000;
+        }
+
+        .modal-btn-primary:hover {
+            background-color: #d8d8d8;
+        }
+
+        .modal-btn-secondary {
+            background-color: #f0f0f0;
+            color: #000000;
+        }
+
+        .modal-btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        .page-section {
+            display: none;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        .dashboard-section {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 40px;
+        }
+
+        #dashboardContent {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .saved-set-item {
+            padding: 20px;
+            background-color: #ffffff;
+            border: 2px solid #d0d0d0;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .saved-set-item:hover {
+            background-color: #f9f9f9;
+            border-color: #000000;
+        }
+
+        .saved-set-info {
+            flex: 1;
+        }
+
+        .saved-set-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #000000;
+            margin-bottom: 5px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .saved-set-count {
+            font-size: 0.9rem;
+            color: #666666;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .saved-set-date {
+            font-size: 0.8rem;
+            color: #999999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .empty-dashboard {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666666;
+            font-size: 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .results-control {
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .results-control-label {
+            font-size: 0.9rem;
+            color: #000000;
+            white-space: nowrap;
+        }
+
+        .results-control-value {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #000000;
+            min-width: 50px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e8e8e8;
+        }
+
+        .pagination-btn {
+            background-color: #e8e8e8;
+            border: 1px solid #d0d0d0;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            color: #000000;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background-color: #d8d8d8;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #000000;
+        }
+
+        .output-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #e8e8e8;
+        }
+
+        #resultsContainer, #savedResultContainer {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .result-item {
+            padding: 20px;
+            background-color: #ffffff;
+            border: 2px solid #d0d0d0;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .result-checkbox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .result-text {
+            font-size: 1rem;
+            color: #000000;
+            margin-bottom: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            word-wrap: break-word;
+        }
+
+        .copy-button {
+            background-color: #e8e8e8;
+            border: none;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            color: #000000;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            width: 100%;
+        }
+
+        .copy-button:hover {
+            background-color: #d8d8d8;
+        }
+
+        .input-buttons-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .add-input-btn, .remove-input-btn {
+            flex: 1;
+            background-color: #e8e8e8;
+            border: none;
+            padding: 15px;
+            font-size: 1.5rem;
+            color: #000000;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-input-btn:hover, .remove-input-btn:hover {
+            background-color: #d8d8d8;
+        }
+
+        .remove-input-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-sections-container {
+            margin-bottom: 20px;
+        }
+
+        .delete-section-btn {
+            background-color: #ff4444;
+            border: none;
+            width: 30px;
+            height: 30px;
+            font-size: 1.2rem;
+            color: #ffffff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .delete-section-btn:hover {
+            background-color: #cc0000;
+        }
+
+        /* Screen reader only class */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background-color: #048a81;
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            width: 48px;
+            height: 48px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mobile-menu-toggle:focus {
+            outline: 3px solid #54c6eb;
+            outline-offset: 2px;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            /* On mobile, adjust sidebar behavior */
+            .sidebar {
+                width: 50px;
+            }
+
+            .sidebar.expanded {
+                width: 200px;
+            }
+
+            .main-content {
+                margin-left: 50px;
+            }
+
+            .main-content.sidebar-open {
+                margin-left: 200px;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 60px 15px 20px;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                padding: 15px;
+            }
+
+            .input-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .input-label {
+                width: 100%;
+                border-radius: 8px;
+            }
+
+            .input-field {
+                width: 100%;
+                border-radius: 8px;
+                min-height: 44px; /* Minimum touch target */
+            }
+
+            .counter-container,
+            .word-count-container {
+                width: 100%;
+                border-radius: 8px;
+                flex-direction: row;
+                justify-content: space-between;
+                padding: 15px;
+            }
+
+            .counter-value,
+            .word-count-value {
+                margin-bottom: 0;
+            }
+
+            .counter-buttons {
+                margin-left: auto;
+            }
+
+            /* Ensure buttons meet minimum touch target size (44x44px) */
+            .counter-btn {
+                min-width: 44px;
+                min-height: 44px;
+                width: 44px;
+                height: 44px;
+            }
+
+            .copy-button {
+                min-height: 44px;
+                padding: 12px 20px;
+            }
+
+            .generate-button,
+            .save-button {
+                min-height: 44px;
+                padding: 15px 20px;
+            }
+
+            .add-input-btn,
+            .remove-input-btn {
+                min-width: 48px;
+                min-height: 48px;
+                width: 48px;
+                height: 48px;
+            }
+
+            .pagination-btn {
+                min-height: 44px;
+                padding: 12px 20px;
+            }
+
+            .modal-btn {
+                min-height: 44px;
+                padding: 12px 24px;
+            }
+
+            #resultsContainer, #savedResultContainer {
+                grid-template-columns: 1fr;
+            }
+
+            #dashboardContent {
+                grid-template-columns: 1fr;
+            }
+
+            .generate-buttons-container {
+                flex-direction: column;
+            }
+
+            .input-buttons-container {
+                flex-direction: column;
+            }
+
+            .combinations-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .results-control {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .result-item {
+                padding: 15px;
+            }
+        }
+
+        /* Focus styles for accessibility */
+        button:focus,
+        input:focus,
+        a:focus {
+            outline: 3px solid #54c6eb;
+            outline-offset: 2px;
+        }
+
+        /* Skip to main content link */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #048a81;
+            color: #ffffff;
+            padding: 8px;
+            text-decoration: none;
+            z-index: 100;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip to main content link -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation menu" aria-expanded="false" onclick="toggleMobileMenu()">
+        ☰
+    </button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar" aria-expanded="false" onclick="toggleSidebar()">
+            ☰
+        </button>
+        <nav class="sidebar-nav" aria-label="Navigation menu">
+            <a href="#" class="sidebar-link active" onclick="showPage('dashboard'); return false;" aria-label="Go to Dashboard" role="button" tabindex="0">📊</a>
+            <a href="#" class="sidebar-link" onclick="showPage('generator'); return false;" aria-label="Go to Hashtag Generator" role="button" tabindex="0">#</a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content" role="main">
+        <div class="container">
+            <h1>Hashtag Generator</h1>
+
+        <!-- Generator Page -->
+        <section id="generatorPage" class="page-section active" aria-labelledby="generator-heading">
+            <h2 id="generator-heading" class="sr-only">Hashtag Generator</h2>
+
+        <div class="input-sections-container" id="inputSectionsContainer">
+            <!-- Input Section 1 -->
+            <div class="input-section" data-section-id="1">
+                <label for="input1" class="input-label">Terms: 1M +</label>
+                <input type="text" class="input-field" id="input1" placeholder="Enter terms separated by commas or spaces" aria-label="Input field 1 for hashtag terms" oninput="updateWordCount(1)">
+                <div class="counter-container" role="group" aria-label="Counter controls for input 1">
+                    <div class="counter-value" id="counter1" aria-live="polite" aria-atomic="true">0</div>
+                    <div class="counter-buttons">
+                        <button class="counter-btn" onclick="decrementCounter(1)" aria-label="Decrease counter for input 1">-</button>
+                        <button class="counter-btn" onclick="incrementCounter(1)" aria-label="Increase counter for input 1">+</button>
+                    </div>
+                </div>
+                <div class="word-count-container" role="status" aria-live="polite">
+                    <div class="word-count-value" id="wordCount1">0</div>
+                    <div class="word-count-label">Words</div>
+                </div>
+            </div>
+
+            <!-- Input Section 2 -->
+            <div class="input-section" data-section-id="2">
+                <label for="input2" class="input-label">Terms: 1M +</label>
+                <input type="text" class="input-field" id="input2" placeholder="Enter terms separated by commas or spaces" aria-label="Input field 2 for hashtag terms" oninput="updateWordCount(2)">
+                <div class="counter-container" role="group" aria-label="Counter controls for input 2">
+                    <div class="counter-value" id="counter2" aria-live="polite" aria-atomic="true">0</div>
+                    <div class="counter-buttons">
+                        <button class="counter-btn" onclick="decrementCounter(2)" aria-label="Decrease counter for input 2">-</button>
+                        <button class="counter-btn" onclick="incrementCounter(2)" aria-label="Increase counter for input 2">+</button>
+                    </div>
+                </div>
+                <div class="word-count-container" role="status" aria-live="polite">
+                    <div class="word-count-value" id="wordCount2">0</div>
+                    <div class="word-count-label">Words</div>
+                </div>
+            </div>
+
+            <!-- Input Section 3 -->
+            <div class="input-section" data-section-id="3">
+                <label for="input3" class="input-label">Terms: 1M +</label>
+                <input type="text" class="input-field" id="input3" placeholder="Enter terms separated by commas or spaces" aria-label="Input field 3 for hashtag terms" oninput="updateWordCount(3)">
+                <div class="counter-container" role="group" aria-label="Counter controls for input 3">
+                    <div class="counter-value" id="counter3" aria-live="polite" aria-atomic="true">0</div>
+                    <div class="counter-buttons">
+                        <button class="counter-btn" onclick="decrementCounter(3)" aria-label="Decrease counter for input 3">-</button>
+                        <button class="counter-btn" onclick="incrementCounter(3)" aria-label="Increase counter for input 3">+</button>
+                    </div>
+                </div>
+                <div class="word-count-container" role="status" aria-live="polite">
+                    <div class="word-count-value" id="wordCount3">0</div>
+                    <div class="word-count-label">Words</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Remove Input Buttons -->
+        <div class="input-buttons-container" role="group" aria-label="Input section controls">
+            <button class="add-input-btn" onclick="addInputSection()" aria-label="Add new input section">+</button>
+            <button class="remove-input-btn" id="removeInputBtn" onclick="removeLastInputSection()" aria-label="Remove last input section">-</button>
+        </div>
+
+        <!-- Combinations Section -->
+        <div class="combinations-section" role="status" aria-live="polite">
+            <label for="totalCombinations" class="combinations-label">Total Combinations:</label>
+            <input type="text" class="combinations-input" id="totalCombinations" value="0" readonly aria-label="Total number of possible combinations">
+        </div>
+
+        <!-- Generate Buttons Container -->
+        <div class="generate-buttons-container single-column" id="generateButtonsContainer">
+            <button class="generate-button" onclick="generateHashtags()" aria-label="Generate hashtags from input terms">Generate HashTags</button>
+            <button class="save-button" id="saveButton" onclick="saveResults()" style="display: none;" aria-label="Save generated results">Save</button>
+        </div>
+
+        <!-- Results Control Section -->
+        <div class="results-control" id="resultsControl" style="display: none;" role="status" aria-live="polite">
+            <div class="results-control-label">Total Results:</div>
+            <div class="results-control-value" id="totalResults" aria-label="Total number of generated results">0</div>
+        </div>
+
+        <!-- Output Section -->
+        <section class="output-section" id="outputSection" style="display: none;" aria-label="Generated hashtag results">
+            <div id="resultsContainer" role="list" aria-label="Generated hashtags"></div>
+            <nav class="pagination" id="pagination" aria-label="Pagination for generated results"></nav>
+        </section>
+
+        </div>
+
+        <!-- Dashboard Page -->
+        <section id="dashboardPage" class="page-section" aria-labelledby="dashboard-heading">
+            <div class="dashboard-section">
+                <div id="dashboardList">
+                    <h2 id="dashboard-heading" style="margin-bottom: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;">Saved Results</h2>
+                    <div id="dashboardContent" role="list" aria-label="Saved result sets"></div>
+                </div>
+                <div id="dashboardResultView" style="display: none;" aria-label="Saved result details">
+                    <button class="generate-button" onclick="backToDashboard()" style="margin-bottom: 20px;" aria-label="Return to dashboard">← Back to Dashboard</button>
+                    <div id="savedResultContainer" role="list" aria-label="Generated hashtags"></div>
+                    <nav class="pagination" id="savedResultPagination" aria-label="Pagination for saved results"></nav>
+                </div>
+            </div>
+        </section>
+
+        <!-- Save Modal -->
+        <div id="saveModal" class="modal" role="dialog" aria-labelledby="modal-title" aria-modal="true" style="display: none;">
+            <div class="modal-content">
+                <h3 class="modal-header" id="modal-title">Save Results Set</h3>
+                <label for="setNameInput" class="sr-only">Enter a name for this result set</label>
+                <input type="text" class="modal-input" id="setNameInput" placeholder="Enter set name..." autofocus aria-label="Enter a name for this result set">
+                <div class="modal-buttons">
+                    <button class="modal-btn modal-btn-secondary" onclick="closeSaveModal()" aria-label="Cancel saving results">Cancel</button>
+                    <button class="modal-btn modal-btn-primary" onclick="confirmSave()" aria-label="Save the result set">Save</button>
+                </div>
+            </div>
+        </div>
+
+        </div>
+    </div>
+
+    <script>
+        const counters = {};
+        let nextSectionId = 4; // Start from 4 since we have sections 1, 2, 3 initially
+
+        let allGeneratedHashtags = [];
+        let currentPage = 1;
+        const resultsPerPage = 10;
+        let savedResultsObject = {}; // Object to store saved results
+
+        // Initialize counters for existing sections
+        counters[1] = 0;
+        counters[2] = 0;
+        counters[3] = 0;
+
+        // Sidebar toggle function
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.getElementById('main-content');
+            const isExpanded = sidebar.classList.toggle('expanded');
+            
+            // Update ARIA attribute
+            sidebarToggle.setAttribute('aria-expanded', isExpanded);
+            
+            if (isExpanded) {
+                mainContent.classList.add('sidebar-open');
+            } else {
+                mainContent.classList.remove('sidebar-open');
+            }
+        }
+
+        // Handle keyboard navigation for logo
+        function handleLogoKeydown(event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleSidebar();
+            }
+        }
+
+        // Mobile menu toggle function
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('mobileMenuToggle');
+            const mainContent = document.getElementById('main-content');
+            const isOpen = sidebar.classList.toggle('open');
+            toggle.setAttribute('aria-expanded', isOpen);
+            
+            if (isOpen) {
+                mainContent.classList.add('sidebar-open');
+            } else {
+                mainContent.classList.remove('sidebar-open');
+            }
+        }
+
+        // Close sidebar when clicking outside (desktop) or close mobile menu (mobile)
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('mobileMenuToggle');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.getElementById('main-content');
+            
+            // Check if click is outside sidebar and not on toggle buttons
+            if (!sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                !sidebarToggle.contains(event.target) &&
+                sidebar.classList.contains('expanded')) {
+                
+                // On mobile, use mobile menu behavior
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('expanded');
+                    toggle.setAttribute('aria-expanded', 'false');
+                    sidebarToggle.setAttribute('aria-expanded', 'false');
+                    mainContent.classList.remove('sidebar-open');
+                } else {
+                    // On desktop, close sidebar and adjust main content
+                    sidebar.classList.remove('expanded');
+                    sidebarToggle.setAttribute('aria-expanded', 'false');
+                    mainContent.classList.remove('sidebar-open');
+                }
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('mobileMenuToggle');
+            const mainContent = document.getElementById('main-content');
+            
+            // On mobile, ensure sidebar is closed and mobile menu state is reset
+            if (window.innerWidth <= 768) {
+                if (sidebar.classList.contains('open')) {
+                    // Keep it open but update mobile toggle state
+                    toggle.setAttribute('aria-expanded', 'true');
+                }
+            } else {
+                // On desktop, reset mobile toggle state
+                toggle.setAttribute('aria-expanded', 'false');
+                // Sidebar state is managed by logo click on desktop
+            }
+        });
+
+        // Keyboard navigation for sidebar links
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+            });
+        });
+
+        function getWordCount(id) {
+            const input = document.getElementById(`input${id}`).value;
+            if (input.trim() === '') return 0;
+            // Split by both commas and spaces, then filter empty strings
+            const words = input.split(/[,\s]+/).map(w => w.trim()).filter(word => word.length > 0);
+            return words.length;
+        }
+
+        function incrementCounter(id) {
+            const maxWords = getWordCount(id);
+            const incrementBtn = event.target.closest('.counter-btn');
+            
+            if (counters[id] < maxWords) {
+                counters[id]++;
+                document.getElementById(`counter${id}`).textContent = counters[id];
+                updateCombinations();
+                
+                // Remove error class if it exists
+                if (incrementBtn) {
+                    incrementBtn.classList.remove('error');
+                }
+            } else {
+                // Add error class to show red feedback
+                if (incrementBtn) {
+                    incrementBtn.classList.add('error');
+                    setTimeout(() => {
+                        incrementBtn.classList.remove('error');
+                    }, 500);
+                }
+            }
+        }
+
+        function decrementCounter(id) {
+            if (counters[id] > 0) {
+                counters[id]--;
+                document.getElementById(`counter${id}`).textContent = counters[id];
+                updateCombinations();
+            }
+        }
+
+        function updateCombinations() {
+            let total = 1;
+            let hasZero = false;
+            for (const id in counters) {
+                if (counters[id] === 0) {
+                    hasZero = true;
+                    break;
+                }
+                total *= counters[id];
+            }
+            document.getElementById('totalCombinations').value = hasZero ? 0 : total;
+        }
+
+        function addInputSection() {
+            const sectionId = nextSectionId++;
+            counters[sectionId] = 0;
+            
+            const container = document.getElementById('inputSectionsContainer');
+            const newSection = document.createElement('div');
+            newSection.className = 'input-section';
+            newSection.setAttribute('data-section-id', sectionId);
+            
+            newSection.innerHTML = `
+                <label for="input${sectionId}" class="input-label">Terms: 1M +</label>
+                <input type="text" class="input-field" id="input${sectionId}" placeholder="Enter terms separated by commas or spaces" aria-label="Input field ${sectionId} for hashtag terms" oninput="updateWordCount(${sectionId})">
+                <div class="counter-container" role="group" aria-label="Counter controls for input ${sectionId}">
+                    <div class="counter-value" id="counter${sectionId}" aria-live="polite" aria-atomic="true">0</div>
+                    <div class="counter-buttons">
+                        <button class="counter-btn" onclick="decrementCounter(${sectionId})" aria-label="Decrease counter for input ${sectionId}">-</button>
+                        <button class="counter-btn" onclick="incrementCounter(${sectionId})" aria-label="Increase counter for input ${sectionId}">+</button>
+                    </div>
+                </div>
+                <div class="word-count-container" role="status" aria-live="polite">
+                    <div class="word-count-value" id="wordCount${sectionId}">0</div>
+                    <div class="word-count-label">Words</div>
+                </div>
+            `;
+            
+            container.appendChild(newSection);
+            updateCombinations();
+            updateRemoveButtonState();
+        }
+
+        function removeLastInputSection() {
+            const sections = document.querySelectorAll('.input-section');
+            
+            // Keep at least 2 sections
+            if (sections.length <= 2) {
+                return;
+            }
+            
+            // Get the last section
+            const lastSection = sections[sections.length - 1];
+            const sectionId = parseInt(lastSection.getAttribute('data-section-id'));
+            
+            // Remove the section from DOM
+            lastSection.remove();
+            
+            // Clean up counter
+            delete counters[sectionId];
+            
+            // Update combinations
+            updateCombinations();
+            updateRemoveButtonState();
+        }
+
+        function updateRemoveButtonState() {
+            const sections = document.querySelectorAll('.input-section');
+            const removeBtn = document.getElementById('removeInputBtn');
+            
+            // Disable remove button if only 2 sections remain
+            if (sections.length <= 2) {
+                removeBtn.disabled = true;
+            } else {
+                removeBtn.disabled = false;
+            }
+        }
+
+        function updateWordCount(id) {
+            const words = getWordCount(id);
+            document.getElementById(`wordCount${id}`).textContent = words;
+            
+            // Ensure counter doesn't exceed word count
+            if (counters[id] > words) {
+                counters[id] = words;
+                document.getElementById(`counter${id}`).textContent = counters[id];
+                updateCombinations();
+            }
+        }
+
+        // Initialize word counts on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const sections = document.querySelectorAll('.input-section');
+            sections.forEach(section => {
+                const sectionId = section.getAttribute('data-section-id');
+                updateWordCount(parseInt(sectionId));
+            });
+            updateCombinations();
+            updateRemoveButtonState();
+            
+            // Load saved results object from localStorage
+            try {
+                const saved = localStorage.getItem('savedResultsObject');
+                if (saved) {
+                    savedResultsObject = JSON.parse(saved);
+                }
+            } catch (err) {
+                console.error('Failed to load saved results:', err);
+            }
+            
+            // Initialize dashboard display
+            displayDashboard();
+        });
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function getRandomWords(words, count) {
+            if (count <= 0 || words.length === 0) return [];
+            const shuffled = shuffleArray(words);
+            return shuffled.slice(0, Math.min(count, words.length));
+        }
+
+        function generateRandomResult(wordsArrays, counts) {
+            // Randomly select words from each input based on increment values
+            const allSelected = [];
+            
+            for (let i = 0; i < wordsArrays.length; i++) {
+                const selected = getRandomWords(wordsArrays[i], counts[i]);
+                allSelected.push(...selected);
+            }
+            
+            // Add "#" in front of each keyword and return as comma-separated string
+            const hashtags = allSelected.map(word => {
+                const cleanWord = word.replace(/\s+/g, '');
+                return cleanWord ? `#${cleanWord}` : '';
+            }).filter(tag => tag !== '');
+            
+            return hashtags.join(', ');
+        }
+
+        function generateHashtags() {
+            // Get all input sections
+            const sections = document.querySelectorAll('.input-section');
+            const wordsArrays = [];
+            const counts = [];
+            
+            sections.forEach(section => {
+                const sectionId = section.getAttribute('data-section-id');
+                const input = document.getElementById(`input${sectionId}`);
+                const inputValue = input ? input.value : '';
+                
+                // Get words from input (split by commas and spaces)
+                const words = inputValue.trim() === '' ? [] : inputValue.split(/[,\s]+/).map(w => w.trim()).filter(word => word.length > 0);
+                wordsArrays.push(words);
+                counts.push(counters[sectionId] || 0);
+            });
+            
+            // Calculate total number of results (total combinations)
+            let totalResults = 1;
+            for (const count of counts) {
+                if (count > 0) {
+                    totalResults *= count;
+                } else {
+                    totalResults = 0;
+                    break;
+                }
+            }
+            
+            // Generate random results (one for each possible combination)
+            allGeneratedHashtags = [];
+            for (let i = 0; i < totalResults; i++) {
+                const result = generateRandomResult(wordsArrays, counts);
+                if (result) {
+                    allGeneratedHashtags.push(result);
+                }
+            }
+            
+            // Shuffle the results
+            allGeneratedHashtags = shuffleArray(allGeneratedHashtags);
+            
+            // Save results to database (localStorage)
+            saveResultsToDatabase(allGeneratedHashtags);
+            
+            // Update UI
+            currentPage = 1;
+            document.getElementById('totalResults').textContent = allGeneratedHashtags.length;
+            document.getElementById('resultsControl').style.display = 'flex';
+            document.getElementById('outputSection').style.display = 'block';
+            
+            // Change to 2-column layout
+            const buttonsContainer = document.getElementById('generateButtonsContainer');
+            buttonsContainer.classList.remove('single-column');
+            buttonsContainer.classList.add('two-column');
+            document.getElementById('saveButton').style.display = 'block';
+            
+            updateResultsDisplay();
+        }
+
+        function updateResultsDisplay() {
+            // Show all results with pagination (10 per page)
+            const totalPages = Math.ceil(allGeneratedHashtags.length / resultsPerPage);
+            
+            // Reset to page 1 if current page is out of bounds
+            if (currentPage > totalPages && totalPages > 0) {
+                currentPage = 1;
+            }
+            
+            // Calculate pagination (10 results per page)
+            const startIndex = (currentPage - 1) * resultsPerPage;
+            const endIndex = Math.min(startIndex + resultsPerPage, allGeneratedHashtags.length);
+            const pageResults = allGeneratedHashtags.slice(startIndex, endIndex);
+            
+            // Display results with individual copy buttons
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = '';
+            
+            if (pageResults.length === 0) {
+                resultsContainer.innerHTML = '<div class="result-text" role="status" aria-live="polite">No hashtags generated</div>';
+            } else {
+                pageResults.forEach((result, index) => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.setAttribute('role', 'listitem');
+                    resultItem.setAttribute('aria-label', `Hashtag result ${startIndex + index + 1} of ${allGeneratedHashtags.length}`);
+                    
+                    const resultText = document.createElement('div');
+                    resultText.className = 'result-text';
+                    resultText.textContent = result;
+                    resultText.setAttribute('aria-label', 'Generated hashtags');
+                    
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-button';
+                    copyBtn.textContent = 'COPY TO CLIPBOARD';
+                    copyBtn.setAttribute('aria-label', `Copy hashtag result ${startIndex + index + 1} to clipboard`);
+                    copyBtn.onclick = () => copyToClipboard(result, copyBtn);
+                    
+                    resultItem.appendChild(resultText);
+                    resultItem.appendChild(copyBtn);
+                    resultsContainer.appendChild(resultItem);
+                });
+            }
+            
+            // Update pagination
+            updatePagination(totalPages);
+        }
+
+        function updatePagination(totalPages) {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.textContent = 'Previous';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.setAttribute('aria-label', 'Go to previous page');
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    updateResultsDisplay();
+                }
+            };
+            paginationDiv.appendChild(prevBtn);
+            
+            // Page info
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'pagination-info';
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            pageInfo.setAttribute('aria-live', 'polite');
+            pageInfo.setAttribute('aria-atomic', 'true');
+            paginationDiv.appendChild(pageInfo);
+            
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.textContent = 'Next';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.setAttribute('aria-label', 'Go to next page');
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    updateResultsDisplay();
+                }
+            };
+            paginationDiv.appendChild(nextBtn);
+        }
+
+        function copyToClipboard(text, button) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = button.textContent;
+                button.textContent = 'COPIED!';
+                
+                // Turn save button green
+                const saveBtn = document.getElementById('saveButton');
+                if (saveBtn && saveBtn.style.display !== 'none') {
+                    saveBtn.classList.add('green');
+                }
+                
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function saveResults() {
+            // Show modal
+            const modal = document.getElementById('saveModal');
+            modal.style.display = 'block';
+            modal.setAttribute('aria-hidden', 'false');
+            document.getElementById('setNameInput').focus();
+        }
+
+        function closeSaveModal() {
+            const modal = document.getElementById('saveModal');
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            document.getElementById('setNameInput').value = '';
+        }
+
+        function confirmSave() {
+            const setName = document.getElementById('setNameInput').value.trim();
+            
+            if (!setName) {
+                alert('Please enter a name for the set');
+                return;
+            }
+            
+            const timestamp = Date.now();
+            const date = new Date().toLocaleString();
+            
+            // Save to object with timestamp as key
+            savedResultsObject[timestamp] = {
+                id: timestamp,
+                name: setName,
+                date: date,
+                results: [...allGeneratedHashtags], // Copy the array
+                count: allGeneratedHashtags.length,
+                copied: {} // Initialize copied state tracking
+            };
+            
+            // Also save to localStorage for persistence
+            try {
+                const savedResults = JSON.parse(localStorage.getItem('savedResultsObject') || '{}');
+                savedResults[timestamp] = savedResultsObject[timestamp];
+                localStorage.setItem('savedResultsObject', JSON.stringify(savedResults));
+            } catch (err) {
+                console.error('Failed to save to localStorage:', err);
+            }
+            
+            // Close modal
+            closeSaveModal();
+            
+            // Update button to show success
+            const saveBtn = document.getElementById('saveButton');
+            const originalText = saveBtn.textContent;
+            saveBtn.textContent = 'Saved!';
+            saveBtn.classList.remove('green');
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+            }, 2000);
+            
+            // Update dashboard if it's currently visible
+            if (document.getElementById('dashboardPage').classList.contains('active')) {
+                displayDashboard();
+            }
+        }
+
+        // Close modal when clicking outside of it or pressing Escape
+        window.onclick = function(event) {
+            const modal = document.getElementById('saveModal');
+            if (event.target === modal) {
+                closeSaveModal();
+            }
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modal = document.getElementById('saveModal');
+                if (modal && modal.style.display === 'block') {
+                    closeSaveModal();
+                }
+            }
+        });
+
+        function showPage(pageName) {
+            // Hide all pages
+            document.getElementById('generatorPage').classList.remove('active');
+            document.getElementById('dashboardPage').classList.remove('active');
+            
+            // Remove active class from all sidebar links
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected page and update sidebar
+            if (pageName === 'generator') {
+                document.getElementById('generatorPage').classList.add('active');
+                document.querySelectorAll('.sidebar-link')[1].classList.add('active');
+            } else if (pageName === 'dashboard') {
+                document.getElementById('dashboardPage').classList.add('active');
+                document.querySelectorAll('.sidebar-link')[0].classList.add('active');
+                displayDashboard();
+            }
+        }
+
+        let currentSavedSet = null;
+        let currentSavedPage = 1;
+
+        function displayDashboard() {
+            // Show list view, hide result view
+            document.getElementById('dashboardList').style.display = 'block';
+            document.getElementById('dashboardResultView').style.display = 'none';
+            
+            const dashboardContent = document.getElementById('dashboardContent');
+            dashboardContent.innerHTML = '';
+            
+            // Get all saved results
+            const savedResults = Object.values(savedResultsObject);
+            
+            if (savedResults.length === 0) {
+                dashboardContent.innerHTML = '<div class="empty-dashboard" role="status" aria-live="polite">No saved results yet. Generate and save some results to see them here!</div>';
+                return;
+            }
+            
+            // Sort by date (newest first)
+            savedResults.sort((a, b) => b.id - a.id);
+            
+            // Display each saved set
+            savedResults.forEach((set, index) => {
+                const setItem = document.createElement('div');
+                setItem.className = 'saved-set-item';
+                setItem.setAttribute('role', 'listitem');
+                setItem.setAttribute('tabindex', '0');
+                setItem.setAttribute('aria-label', `Saved set: ${set.name || 'Unnamed Set'}, ${set.count} results, created on ${set.date}`);
+                
+                setItem.innerHTML = `
+                    <div class="saved-set-info">
+                        <div class="saved-set-name">${set.name || 'Unnamed Set'}</div>
+                        <div class="saved-set-count">${set.count} results</div>
+                        <div class="saved-set-date">${set.date}</div>
+                    </div>
+                `;
+                
+                setItem.onclick = () => viewSavedSet(set);
+                setItem.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        viewSavedSet(set);
+                    }
+                };
+                dashboardContent.appendChild(setItem);
+            });
+        }
+
+        function viewSavedSet(set) {
+            currentSavedSet = set;
+            currentSavedPage = 1;
+            
+            // Hide list view, show result view
+            document.getElementById('dashboardList').style.display = 'none';
+            document.getElementById('dashboardResultView').style.display = 'block';
+            
+            displaySavedSetResults();
+        }
+
+        function backToDashboard() {
+            document.getElementById('dashboardList').style.display = 'block';
+            document.getElementById('dashboardResultView').style.display = 'none';
+            currentSavedSet = null;
+        }
+
+        function displaySavedSetResults() {
+            if (!currentSavedSet) return;
+            
+            const container = document.getElementById('savedResultContainer');
+            container.innerHTML = '';
+            
+            // Initialize copied state if it doesn't exist (for older saved sets)
+            if (!currentSavedSet.copied) {
+                currentSavedSet.copied = {};
+                // Save the initialization
+                saveCopiedState();
+            }
+            
+            const totalPages = Math.ceil(currentSavedSet.results.length / resultsPerPage);
+            
+            // Calculate pagination
+            const startIndex = (currentSavedPage - 1) * resultsPerPage;
+            const endIndex = Math.min(startIndex + resultsPerPage, currentSavedSet.results.length);
+            const pageResults = currentSavedSet.results.slice(startIndex, endIndex);
+            
+            // Display results with individual copy buttons (same format as generator)
+            pageResults.forEach((result, index) => {
+                const globalIndex = startIndex + index;
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.setAttribute('role', 'listitem');
+                resultItem.setAttribute('aria-label', `Saved hashtag result ${globalIndex + 1} of ${currentSavedSet.results.length}`);
+                
+                // Create checkbox
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'result-checkbox';
+                checkbox.checked = currentSavedSet.copied[globalIndex] || false;
+                checkbox.disabled = true; // Make it read-only, only auto-checks on copy
+                checkbox.setAttribute('aria-label', `Result ${globalIndex + 1} ${checkbox.checked ? 'has been copied' : 'not copied yet'}`);
+                
+                const resultText = document.createElement('div');
+                resultText.className = 'result-text';
+                resultText.textContent = result;
+                resultText.setAttribute('aria-label', 'Saved hashtags');
+                
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-button';
+                copyBtn.textContent = 'COPY TO CLIPBOARD';
+                copyBtn.setAttribute('aria-label', `Copy saved hashtag result ${globalIndex + 1} to clipboard`);
+                copyBtn.onclick = () => {
+                    copyToClipboard(result, copyBtn);
+                    // Check the checkbox and save state
+                    checkbox.checked = true;
+                    checkbox.setAttribute('aria-label', `Result ${globalIndex + 1} has been copied`);
+                    currentSavedSet.copied[globalIndex] = true;
+                    saveCopiedState();
+                };
+                
+                resultItem.appendChild(checkbox);
+                resultItem.appendChild(resultText);
+                resultItem.appendChild(copyBtn);
+                container.appendChild(resultItem);
+            });
+            
+            // Update pagination
+            updateSavedSetPagination(totalPages);
+        }
+
+        function saveCopiedState() {
+            // Save the updated copied state to localStorage
+            try {
+                const savedResults = JSON.parse(localStorage.getItem('savedResultsObject') || '{}');
+                if (currentSavedSet && currentSavedSet.id) {
+                    savedResults[currentSavedSet.id] = currentSavedSet;
+                    localStorage.setItem('savedResultsObject', JSON.stringify(savedResults));
+                    // Update the global object
+                    savedResultsObject[currentSavedSet.id] = currentSavedSet;
+                }
+            } catch (err) {
+                console.error('Failed to save copied state:', err);
+            }
+        }
+
+        function updateSavedSetPagination(totalPages) {
+            const paginationDiv = document.getElementById('savedResultPagination');
+            paginationDiv.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'pagination-btn';
+            prevBtn.textContent = 'Previous';
+            prevBtn.disabled = currentSavedPage === 1;
+            prevBtn.setAttribute('aria-label', 'Go to previous page');
+            prevBtn.onclick = () => {
+                if (currentSavedPage > 1) {
+                    currentSavedPage--;
+                    displaySavedSetResults();
+                }
+            };
+            paginationDiv.appendChild(prevBtn);
+            
+            // Page info
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'pagination-info';
+            pageInfo.textContent = `Page ${currentSavedPage} of ${totalPages}`;
+            pageInfo.setAttribute('aria-live', 'polite');
+            pageInfo.setAttribute('aria-atomic', 'true');
+            paginationDiv.appendChild(pageInfo);
+            
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'pagination-btn';
+            nextBtn.textContent = 'Next';
+            nextBtn.disabled = currentSavedPage === totalPages;
+            nextBtn.setAttribute('aria-label', 'Go to next page');
+            nextBtn.onclick = () => {
+                if (currentSavedPage < totalPages) {
+                    currentSavedPage++;
+                    displaySavedSetResults();
+                }
+            };
+            paginationDiv.appendChild(nextBtn);
+        }
+
+
+        // Database functions (using localStorage)
+        function saveResultsToDatabase(results) {
+            try {
+                const savedSessions = JSON.parse(localStorage.getItem('hashtagSessions') || '[]');
+                const session = {
+                    id: Date.now(),
+                    timestamp: new Date().toISOString(),
+                    date: new Date().toLocaleString(),
+                    results: results,
+                    count: results.length
+                };
+                savedSessions.unshift(session); // Add to beginning
+                
+                // Keep only last 50 sessions to avoid storage issues
+                if (savedSessions.length > 50) {
+                    savedSessions.pop();
+                }
+                
+                localStorage.setItem('hashtagSessions', JSON.stringify(savedSessions));
+            } catch (err) {
+                console.error('Failed to save results:', err);
+            }
+        }
+
+    </script>
+</body>
+</html>
