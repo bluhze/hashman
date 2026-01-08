@@ -191,6 +191,35 @@
 
 ---
 
+## Version 1.1.0 (Next.js) - EXPERIMENTAL - REMOVED
+
+### Migration Attempt
+- ✅ Created Next.js 16 project with TypeScript
+- ✅ Integrated shadcn/ui component library
+- ✅ Set up Supabase authentication with SSR
+- ✅ Created route protection middleware
+- ✅ Built profiles table SQL schema
+- ✅ Implemented login/signup pages with shadcn components
+- ✅ Added logout functionality
+- ✅ Created dashboard and generator pages
+- ✅ Matched all styles from static version
+
+### Decision to Remove
+- ❌ **Removed Next.js implementation** - Returning to static HTML/JS
+- ❌ Complexity overhead not needed for current requirements
+- ❌ Static version provides better simplicity and performance
+- ❌ All Next.js files and dependencies removed
+
+### Lessons Learned
+- Static HTML/JS is sufficient for current feature set
+- Next.js adds unnecessary complexity for this use case
+- Supabase integration works well with vanilla JS
+- Static deployment is simpler and faster
+
+---
+
+## Version 1.0.0 - Static Implementation (Current)
+
 *Last Updated: 2026*
-*Version: 1.0.0*
+*Current Version: 1.0.0 (Static)*
 

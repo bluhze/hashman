@@ -41,7 +41,8 @@ Hashman is a modern, web-based hashtag generator application that allows users t
 - Vanilla JavaScript (no frameworks)
 - HTML5 with semantic markup
 - CSS3 with custom properties (CSS variables)
-- localStorage for data persistence
+- **Supabase** for authentication and backend services
+- localStorage for client-side data persistence
 - Inter font family for typography
 - SVG icons for UI elements
 
@@ -49,9 +50,30 @@ Hashman is a modern, web-based hashtag generator application that allows users t
 - `index.html` - Single-page application containing all HTML, CSS, and JavaScript
 - `PROMPT.md` - This file, project documentation
 - `LOGS.md` - Version history and changelog
+- `SUPABASE_SETUP.md` - Supabase authentication setup guide
+
+## Supabase Configuration
+The application uses Supabase for authentication. To set up:
+1. Create a Supabase project at https://supabase.com
+2. Get your project URL and anon key from the Supabase dashboard
+3. Update the configuration in `index.html`:
+   ```javascript
+   const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+   ```
+4. See `SUPABASE_SETUP.md` for detailed setup instructions
 
 ## Current Version
-v1.0.0 - Initial release with core features
+v1.0.0 - Static HTML/JS implementation (Current)
+
+## Version History
+- **v1.0.0** - Static HTML/JS implementation with Supabase authentication
+- **v1.1.0 (Next.js)** - Experimental Next.js version (removed)
+  - Attempted migration to Next.js 16 with TypeScript
+  - Included shadcn/ui components
+  - Route protection with middleware
+  - Profiles table integration
+  - **Status: Removed - Returning to static implementation**
 
 ## Future Enhancements
 - Backend API integration for user authentication

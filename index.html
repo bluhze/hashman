@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             /* Primary Colors */
@@ -2507,6 +2509,82 @@
     </div>
 
     <script>
+        // ============================================
+        // SUPABASE CONFIGURATION
+        // ============================================
+        // TODO: Replace these with your Supabase project credentials
+        // Get these from: https://supabase.com/dashboard/project/_/settings/api
+        const SUPABASE_URL = 'https://cdryqptoapfrxtbjxrol.supabase.co'; // e.g., 'https://xxxxx.supabase.co'
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkcnlxcHRvYXBmcnh0Ymp4cm9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc4MTU5NjcsImV4cCI6MjA4MzM5MTk2N30.Dxfi3o2cvbmvD-IFYSYxR6QsgVnRl66LPP8fhr9uoN0'; // Your Supabase anon/public key
+        
+        // Initialize Supabase client
+        // Use window object to avoid redeclaration errors
+        if (typeof window.supabaseClient === 'undefined') {
+            window.supabaseClient = null;
+        }
+        
+        try {
+            if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && 
+                SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' &&
+                typeof window.supabase !== 'undefined') {
+                window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log('Supabase initialized successfully');
+            } else {
+                if (typeof window.supabase === 'undefined') {
+                    console.warn('Supabase library not loaded. Please check the script tag.');
+                } else {
+                    console.warn('Supabase not configured. Please add your Supabase URL and anon key in the configuration section above.');
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing Supabase:', error);
+        }
+
+        // Toast notification function
+function showToast(message, type = 'info') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 1rem 1.5rem;
+        background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--primary)'};
+        color: white;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
+    `;
+    toast.textContent = message;
+    
+    // Add animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+        // ============================================
+
         const counters = {};
         let nextSectionId = 4; // Start from 4 since we have sections 1, 2, 3 initially
 
@@ -2521,38 +2599,46 @@
         counters[2] = 0;
         counters[3] = 0;
 
-        // Navigation Functions
-        function navigateToHome() {
+        // Navigation Functions - Make them globally accessible
+        window.navigateToHome = async function() {
+            // If user is not logged in, hide sidebar when going to home
+            const user = await getCurrentUser();
+            if (!user) {
+                hideSidebar();
+            }
             showPage('home');
             updateActiveNav('home');
-        }
+        };
 
-        function navigateToLogin() {
+        window.navigateToLogin = function() {
+            // Hide sidebar when navigating to login (user not logged in)
+            hideSidebar();
             showPage('login');
             updateActiveNav('login');
-        }
+        };
 
-        function navigateToSignUp() {
+        window.navigateToSignUp = function() {
+            // Hide sidebar when navigating to signup (user not logged in)
+            hideSidebar();
             showPage('signup');
             updateActiveNav('signup');
-        }
+        };
 
-        function navigateToDashboard() {
+        window.navigateToDashboard = function() {
             showPage('dashboard');
             updateActiveNav('dashboard');
-        }
+        };
 
-        function navigateToInputConfig() {
+        window.navigateToInputConfig = function() {
             showPage('generator');
             updateActiveNav('input-config');
-        }
+        };
 
         // Auth Form Handlers
-        function handleLogin(event) {
+        async function handleLogin(event) {
             event.preventDefault();
             const email = document.getElementById('loginEmail').value.trim();
             const password = document.getElementById('loginPassword').value;
-            const rememberMe = document.getElementById('rememberMe')?.checked || false;
             
             // Basic validation
             if (!email || !password) {
@@ -2565,48 +2651,80 @@
                 return;
             }
             
-            // Find user by email
-            const user = findUserByEmail(email);
-            
-            if (!user) {
-                showToast('Invalid email or password', 'error');
+            // If Supabase is not configured, fall back to localStorage
+            if (!window.supabaseClient) {
+                showToast('Authentication service not configured. Please configure Supabase.', 'error');
                 return;
             }
             
-            // Check password (in production, compare hashed passwords)
-            if (user.password !== password) {
-                showToast('Invalid email or password', 'error');
-                return;
+            try {
+                // Sign in with Supabase
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    showToast(error.message || 'Invalid email or password', 'error');
+                    return;
+                }
+                
+                if (data.user) {
+                    // Set as current user
+                    await setCurrentUser(data.user);
+                    
+                    // Show success message
+                    showToast('Login successful!', 'success');
+                    
+                    // Clear form
+                    document.getElementById('loginForm').reset();
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        showSidebar();
+                        navigateToDashboard();
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                showToast('An error occurred during login. Please try again.', 'error');
             }
-            
-            // Set as current user
-            setCurrentUser(user);
-            
-            // Show success message
-            showToast('Login successful!', 'success');
-            
-            // Clear form
-            document.getElementById('loginForm').reset();
-            
-            // Redirect to dashboard
-            setTimeout(() => {
-                showSidebar();
-                navigateToDashboard();
-            }, 1000);
         }
         
-        function handleLogout() {
+        async function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                setCurrentUser(null);
-                hideSidebar();
-                navigateToHome();
-                showToast('Logged out successfully', 'success');
+                try {
+                    // Sign out from Supabase
+                    if (window.supabaseClient) {
+                        const { error } = await window.supabaseClient.auth.signOut();
+                        if (error) {
+                            console.error('Logout error:', error);
+                        }
+                    }
+                    
+                    // Clear current user
+                    await setCurrentUser(null);
+                    currentUser = null;
+                    
+                    // Hide sidebar and navigate
+                    hideSidebar();
+                    navigateToHome();
+                    showToast('Logged out successfully', 'success');
+                } catch (err) {
+                    console.error('Logout error:', err);
+                    // Still logout locally even if Supabase fails
+                    await setCurrentUser(null);
+                    currentUser = null;
+                    hideSidebar();
+                    navigateToHome();
+                    showToast('Logged out successfully', 'success');
+                }
             }
         }
         
         // Check if user is logged in on page load
-        function checkAuthStatus() {
-            const user = getCurrentUser();
+        async function checkAuthStatus() {
+            const user = await getCurrentUser();
             if (user) {
                 currentUser = user;
                 showSidebar();
@@ -2618,6 +2736,21 @@
             } else {
                 hideSidebar();
             }
+        }
+        
+        // Listen for auth state changes
+        if (window.supabaseClient) {
+            window.supabaseClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_IN' && session) {
+                    setCurrentUser(session.user);
+                    showSidebar();
+                    updateSidebarUserInfo();
+                } else if (event === 'SIGNED_OUT') {
+                    setCurrentUser(null);
+                    currentUser = null;
+                    hideSidebar();
+                }
+            });
         }
         
         // Update sidebar with user info
@@ -2707,50 +2840,47 @@
             showToast('Settings page coming soon', 'info');
         }
 
-        // User Management Functions
-        function getUsers() {
-            try {
-                const users = localStorage.getItem('hashmanUsers');
-                return users ? JSON.parse(users) : [];
-            } catch (err) {
-                console.error('Error loading users:', err);
-                return [];
-            }
-        }
-
-        function saveUser(user) {
-            try {
-                const users = getUsers();
-                users.push(user);
-                localStorage.setItem('hashmanUsers', JSON.stringify(users));
-                return true;
-            } catch (err) {
-                console.error('Error saving user:', err);
-                return false;
-            }
-        }
-
-        function findUserByEmail(email) {
-            const users = getUsers();
-            return users.find(user => user.email.toLowerCase() === email.toLowerCase());
-        }
-
-        function setCurrentUser(user) {
+        // Supabase User Management Functions
+        async function setCurrentUser(user) {
             currentUser = user;
             if (user) {
-                localStorage.setItem('hashmanCurrentUser', JSON.stringify(user));
+                // Store user metadata in localStorage for quick access
+                localStorage.setItem('hashmanCurrentUser', JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    name: user.user_metadata?.name || user.email?.split('@')[0] || 'User'
+                }));
             } else {
                 localStorage.removeItem('hashmanCurrentUser');
             }
         }
 
-        function getCurrentUser() {
+        async function getCurrentUser() {
             if (currentUser) return currentUser;
+            
+            if (!window.supabaseClient) {
+                // Fallback to localStorage if Supabase not configured
+                try {
+                    const user = localStorage.getItem('hashmanCurrentUser');
+                    return user ? JSON.parse(user) : null;
+                } catch (err) {
+                    return null;
+                }
+            }
+            
             try {
-                const user = localStorage.getItem('hashmanCurrentUser');
-                return user ? JSON.parse(user) : null;
+                // Get current session from Supabase
+                const { data: { session }, error } = await window.supabaseClient.auth.getSession();
+                if (error) throw error;
+                
+                if (session && session.user) {
+                    currentUser = session.user;
+                    await setCurrentUser(session.user);
+                    return session.user;
+                }
+                return null;
             } catch (err) {
-                console.error('Error loading current user:', err);
+                console.error('Error getting current user:', err);
                 return null;
             }
         }
@@ -2766,7 +2896,7 @@
             return passwordRegex.test(password);
         }
 
-        function handleSignUp(event) {
+        async function handleSignUp(event) {
             event.preventDefault();
             const name = document.getElementById('signupName').value.trim();
             const email = document.getElementById('signupEmail').value.trim();
@@ -2790,12 +2920,6 @@
                 return;
             }
             
-            // Check if email already exists
-            if (findUserByEmail(email)) {
-                showToast('An account with this email already exists', 'error');
-                return;
-            }
-            
             if (password !== confirmPassword) {
                 showToast('Passwords do not match', 'error');
                 return;
@@ -2816,34 +2940,49 @@
                 return;
             }
             
-            // Create user object
-            const user = {
-                id: Date.now().toString(),
-                name: name,
-                email: email,
-                password: password, // In production, this should be hashed
-                createdAt: new Date().toISOString(),
-                savedResults: []
-            };
+            // If Supabase is not configured, fall back to localStorage
+            if (!window.supabaseClient) {
+                showToast('Authentication service not configured. Please configure Supabase.', 'error');
+                return;
+            }
             
-            // Save user
-            if (saveUser(user)) {
-                // Set as current user
-                setCurrentUser(user);
+            try {
+                // Sign up with Supabase
+                const { data, error } = await window.supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: name,
+                            full_name: name
+                        }
+                    }
+                });
                 
-                // Show success message
-                showToast('Account created successfully!', 'success');
+                if (error) {
+                    showToast(error.message || 'Error creating account. Please try again.', 'error');
+                    return;
+                }
                 
-                // Clear form
-                document.getElementById('signupForm').reset();
-                
-                // Redirect to dashboard
-                setTimeout(() => {
-                    showSidebar();
-                    navigateToDashboard();
-                }, 1000);
-            } else {
-                showToast('Error creating account. Please try again.', 'error');
+                if (data.user) {
+                    // Set as current user
+                    await setCurrentUser(data.user);
+                    
+                    // Show success message
+                    showToast('Account created successfully!', 'success');
+                    
+                    // Clear form
+                    document.getElementById('signupForm').reset();
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        showSidebar();
+                        navigateToDashboard();
+                    }, 1000);
+                }
+            } catch (err) {
+                console.error('Signup error:', err);
+                showToast('An error occurred during signup. Please try again.', 'error');
             }
         }
 
@@ -3020,9 +3159,9 @@
         }
 
         // Initialize word counts on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Check authentication status first
-            checkAuthStatus();
+            await checkAuthStatus();
             
             const sections = document.querySelectorAll('.input-section');
             sections.forEach(section => {
@@ -3350,30 +3489,57 @@
         });
 
         function showPage(pageName) {
-            // Hide all pages
-            document.getElementById('homePage').classList.remove('active');
-            document.getElementById('loginPage').classList.remove('active');
-            document.getElementById('signupPage').classList.remove('active');
-            document.getElementById('generatorPage').classList.remove('active');
-            document.getElementById('dashboardPage').classList.remove('active');
+            // Hide all pages safely
+            const pageIds = ['homePage', 'loginPage', 'signupPage', 'generatorPage', 'dashboardPage'];
+            pageIds.forEach(pageId => {
+                const page = document.getElementById(pageId);
+                if (page) {
+                    page.classList.remove('active');
+                }
+            });
             
             // Show selected page and update navigation
             if (pageName === 'home') {
-                document.getElementById('homePage').classList.add('active');
-                updateActiveNav('home');
+                const homePage = document.getElementById('homePage');
+                if (homePage) {
+                    homePage.classList.add('active');
+                    updateActiveNav('home');
+                } else {
+                    console.error('homePage element not found');
+                }
             } else if (pageName === 'login') {
-                document.getElementById('loginPage').classList.add('active');
-                updateActiveNav('login');
+                const loginPage = document.getElementById('loginPage');
+                if (loginPage) {
+                    loginPage.classList.add('active');
+                    updateActiveNav('login');
+                } else {
+                    console.error('loginPage element not found');
+                }
             } else if (pageName === 'signup') {
-                document.getElementById('signupPage').classList.add('active');
-                updateActiveNav('signup');
+                const signupPage = document.getElementById('signupPage');
+                if (signupPage) {
+                    signupPage.classList.add('active');
+                    updateActiveNav('signup');
+                } else {
+                    console.error('signupPage element not found');
+                }
             } else if (pageName === 'generator') {
-                document.getElementById('generatorPage').classList.add('active');
-                updateActiveNav('input-config');
+                const generatorPage = document.getElementById('generatorPage');
+                if (generatorPage) {
+                    generatorPage.classList.add('active');
+                    updateActiveNav('input-config');
+                } else {
+                    console.error('generatorPage element not found');
+                }
             } else if (pageName === 'dashboard') {
-                document.getElementById('dashboardPage').classList.add('active');
-                updateActiveNav('dashboard');
-                displayDashboard();
+                const dashboardPage = document.getElementById('dashboardPage');
+                if (dashboardPage) {
+                    dashboardPage.classList.add('active');
+                    updateActiveNav('dashboard');
+                    displayDashboard();
+                } else {
+                    console.error('dashboardPage element not found');
+                }
             }
         }
 
@@ -3722,3 +3888,4 @@
     </script>
 </body>
 </html>
+
